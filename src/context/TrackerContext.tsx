@@ -10,6 +10,7 @@ interface TrackerContextType {
   syncUrl: string;
   setSyncUrl: (url: string) => void;
   isLoading: boolean;
+  syncError: string | null;
 }
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
@@ -17,6 +18,7 @@ const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 export const TrackerProvider = ({ children }: { children: ReactNode }) => {
   const [syncUrl, setSyncUrl] = useState<string>(() => localStorage.getItem('client-tracker-sync-url') || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [entries, setEntries] = useState<Entry[]>(() => {
     const saved = localStorage.getItem('client-tracker-entries');
     if (saved) {
@@ -46,15 +48,30 @@ export const TrackerProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (syncUrl) {
       setIsLoading(true);
+      setSyncError(null);
       fetch(syncUrl)
-        .then(res => res.json())
+        .then(async res => {
+          const text = await res.text();
+          try {
+            return JSON.parse(text);
+          } catch(e) {
+            console.error("Google Sheets HTML Response:", text);
+            throw new Error("Received HTML instead of JSON. The deployment is likely requiring a Google Login. Check 'Who has access'.");
+          }
+        })
         .then(data => {
           if (data.status === 'success' && data.entries) {
             setEntries(data.entries);
             localStorage.setItem('client-tracker-entries', JSON.stringify(data.entries));
+            setSyncError(null);
+          } else if (data.status === 'error') {
+            throw new Error(data.message || "Unknown Apps Script error");
           }
         })
-        .catch(err => console.error("Failed to fetch from Google Sheets", err))
+        .catch(err => {
+          console.error("Failed to fetch from Google Sheets:", err);
+          setSyncError(err.message || "Failed to connect to Google Sheets.");
+        })
         .finally(() => setIsLoading(false));
     }
   }, [syncUrl]);
@@ -71,7 +88,21 @@ export const TrackerProvider = ({ children }: { children: ReactNode }) => {
         // using text/plain to avoid CORS preflight issues with some Apps Script deployments
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'sync', entries })
-      }).catch(err => console.error("Failed to sync to Google Sheets", err));
+      })
+      .then(async res => {
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (data.status === 'error') throw new Error(data.message);
+          setSyncError(null);
+        } catch(e) {
+          throw new Error("Post to sheet failed. Check deployment settings.");
+        }
+      })
+      .catch(err => {
+        console.error("Failed to post to Google Sheets:", err);
+        setSyncError(err.message || "Failed to update Google Sheets.");
+      });
     }
   }, [entries, syncUrl]);
 
@@ -98,7 +129,7 @@ export const TrackerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <TrackerContext.Provider value={{ entries, addEntry, deleteEntry, updateEntry, syncUrl, setSyncUrl, isLoading }}>
+    <TrackerContext.Provider value={{ entries, addEntry, deleteEntry, updateEntry, syncUrl, setSyncUrl, isLoading, syncError }}>
       {children}
     </TrackerContext.Provider>
   );
