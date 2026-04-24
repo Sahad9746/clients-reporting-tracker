@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { TrackerTable } from './components/TrackerTable';
 import { AddEntryForm } from './components/AddEntryForm';
 import { LayoutDashboard, Share2, Settings, FileSpreadsheet, X } from 'lucide-react';
+import { Toaster, toast } from 'react-hot-toast';
 
 const AppContent: React.FC = () => {
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -27,11 +28,12 @@ const AppContent: React.FC = () => {
     const url = new URL(window.location.href);
     url.searchParams.set('view', 'client');
     navigator.clipboard.writeText(url.toString());
-    alert('Shareable read-only link copied to clipboard!');
+    toast.success('Shareable read-only link copied!');
   };
 
   return (
     <div className="app-container">
+      <Toaster position="bottom-right" />
       
       {/* Sidebar / Header (Top on mobile, side on desktop via CSS, but we'll do a simple top bar for flexibility) */}
       <div style={{ width: '100%', backgroundColor: 'var(--color-primary)', color: 'white', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'var(--shadow-md)' }}>
@@ -119,7 +121,7 @@ const AppContent: React.FC = () => {
                 <button className="btn btn-secondary" onClick={() => {
                   setSyncUrl('');
                   setShowSettings(false);
-                  alert('Sync disconnected. Data will remain locally.');
+                  toast.success('Sync disconnected. Data will remain locally.');
                 }}>
                   Disconnect
                 </button>
@@ -127,6 +129,7 @@ const AppContent: React.FC = () => {
               <button className="btn btn-primary" onClick={() => {
                 setSyncUrl(tempUrl);
                 setShowSettings(false);
+                toast.success('Settings saved!');
               }}>
                 Save Settings
               </button>
