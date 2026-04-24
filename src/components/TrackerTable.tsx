@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useTracker } from '../context/TrackerContext';
-import { Download, Search, Trash2 } from 'lucide-react';
+import { Download, Search, Trash2, AlertTriangle } from 'lucide-react';
 import type { Status, TaskType } from '../types';
+import { toast } from 'react-hot-toast';
+import { createPortal } from 'react-dom';
 
 interface TrackerTableProps {
   isReadOnly?: boolean;
@@ -12,6 +14,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All');
   const [taskTypeFilter, setTaskTypeFilter] = useState<TaskType | 'All'>('All');
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
 
   const filteredEntries = entries.filter(entry => {
     const matchesSearch = entry.platform.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -57,6 +60,14 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
       case 'Removed': return 'badge-removed';
       case 'Completed': return 'badge-completed';
       default: return '';
+    }
+  };
+
+  const confirmDelete = () => {
+    if (entryToDelete) {
+      deleteEntry(entryToDelete);
+      toast.success('Entry deleted successfully');
+      setEntryToDelete(null);
     }
   };
 
@@ -152,7 +163,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
                   {!isReadOnly && (
                     <td>
                       <button 
-                        onClick={() => deleteEntry(entry.id)}
+                        onClick={() => setEntryToDelete(entry.id)}
                         style={{ color: '#ef4444', padding: '0.25rem', borderRadius: '4px' }}
                         title="Delete Entry"
                       >
@@ -166,6 +177,32 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Modal using React Portal */}
+      {entryToDelete && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div className="card animate-fade-in" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', margin: 0, transform: 'none', animation: 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{ backgroundColor: '#fee2e2', padding: '1rem', borderRadius: '50%', color: '#ef4444' }}>
+                <AlertTriangle size={32} />
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Delete Entry</h2>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+              Are you sure you want to delete this entry? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button className="btn btn-secondary" onClick={() => setEntryToDelete(null)}>
+                Cancel
+              </button>
+              <button className="btn" style={{ backgroundColor: '#ef4444', color: 'white' }} onClick={confirmDelete}>
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
