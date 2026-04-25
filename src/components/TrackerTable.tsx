@@ -144,9 +144,24 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
                 </td>
               </tr>
             ) : (
-              filteredEntries.map(entry => (
+              filteredEntries.map(entry => {
+                let formattedDate = entry.date;
+                try {
+                  const d = new Date(entry.date);
+                  if (!isNaN(d.getTime())) {
+                    // Try to format it cleanly. If the original string was just "YYYY-MM-DD", 
+                    // this will handle it. If it's an ISO string, it will parse it correctly too.
+                    formattedDate = d.toLocaleDateString(undefined, { 
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    });
+                  }
+                } catch(e) {}
+                
+                return (
                 <tr key={entry.id}>
-                  <td>{entry.date}</td>
+                  <td>{formattedDate}</td>
                   <td><span style={{ fontWeight: 500 }}>{entry.taskType}</span></td>
                   <td>
                     {entry.url ? (
@@ -172,7 +187,8 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
                     </td>
                   )}
                 </tr>
-              ))
+              );
+            })
             )}
           </tbody>
         </table>
