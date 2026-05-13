@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTracker } from '../context/TrackerContext';
-import { Download, Search, Trash2, AlertTriangle } from 'lucide-react';
+import { useClients } from '../context/ClientsContext';
+import { useAuth } from '../context/AuthContext';
+import { Download, Search, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import type { Status, TaskType } from '../types';
 import { toast } from 'react-hot-toast';
 import { createPortal } from 'react-dom';
@@ -11,10 +13,15 @@ interface TrackerTableProps {
 
 export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
   const { entries, deleteEntry } = useTracker();
+  const { clients } = useClients();
+  const { auth } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All');
   const [taskTypeFilter, setTaskTypeFilter] = useState<TaskType | 'All'>('All');
+  const [clientFilter, setClientFilter] = useState<string>('All');
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
+
+  const activeClient = isReadOnly ? clients.find(c => c.id === auth?.clientId) : null;
 
   const filteredEntries = entries.filter(entry => {
     const matchesSearch = entry.platform.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -22,16 +29,22 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
                           entry.url.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || entry.status === statusFilter;
     const matchesTaskType = taskTypeFilter === 'All' || entry.taskType === taskTypeFilter;
-    return matchesSearch && matchesStatus && matchesTaskType;
+    const matchesClient = isReadOnly 
+      ? entry.clientId === auth?.clientId 
+      : clientFilter === 'All' || entry.clientId === clientFilter;
+      
+    return matchesSearch && matchesStatus && matchesTaskType && matchesClient;
   });
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Task Type', 'Platform', 'URL', 'Status', 'Indexed on Google', 'Engagement Level', 'Notes', 'Last Updated'];
+    const headers = ['Date', 'Client', 'Task Type', 'Platform', 'URL', 'Status', 'Indexed on Google', 'Engagement Level', 'Notes', 'Last Updated'];
     const csvRows = [headers.join(',')];
 
     for (const entry of filteredEntries) {
+      const clientName = clients.find(c => c.id === entry.clientId)?.name || '';
       const row = [
         entry.date,
+        `"${clientName.replace(/"/g, '""')}"`,
         entry.taskType,
         `"${entry.platform.replace(/"/g, '""')}"`,
         `"${entry.url.replace(/"/g, '""')}"`,
@@ -70,6 +83,19 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
       setEntryToDelete(null);
     }
   };
+
+  if (isReadOnly && activeClient && !activeClient.googleSheetUrl) {
+    return (
+      <div className="card animate-fade-in" style={{ animationDelay: '0.4s', textAlign: 'center', padding: '4rem 2rem' }}>
+        <AlertCircle size={48} style={{ color: 'var(--color-text-muted)', margin: '0 auto 1rem', opacity: 0.5 }} />
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>No Tracker Linked</h2>
+        <p style={{ color: 'var(--color-text-muted)' }}>
+          Your account is not currently linked to a Google Sheet. <br/>
+          Please contact your administrator to set up your Live Tracker.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="card animate-fade-in" style={{ animationDelay: '0.4s' }}>
@@ -116,6 +142,20 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
             <option value="SEO">SEO</option>
           </select>
 
+          {!isReadOnly && (
+            <select 
+              className="form-input" 
+              style={{ width: '160px' }}
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+            >
+              <option value="All">All Clients</option>
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+
           <button className="btn btn-secondary" onClick={exportToCSV}>
             <Download size={16} />
             Export CSV
@@ -128,6 +168,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
           <thead>
             <tr>
               <th>Date</th>
+              {!isReadOnly && <th>Client</th>}
               <th>Task Type</th>
               <th>Platform</th>
               <th>Status</th>
@@ -139,7 +180,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
           <tbody>
             {filteredEntries.length === 0 ? (
               <tr>
-                <td colSpan={isReadOnly ? 6 : 7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
+                <td colSpan={isReadOnly ? 6 : 8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
                   No entries found matching your criteria.
                 </td>
               </tr>
@@ -162,6 +203,9 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
                 return (
                 <tr key={entry.id}>
                   <td>{formattedDate}</td>
+                  {!isReadOnly && (
+                    <td><span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{clients.find(c => c.id === entry.clientId)?.name || '—'}</span></td>
+                  )}
                   <td><span style={{ fontWeight: 500 }}>{entry.taskType}</span></td>
                   <td>
                     {entry.url ? (
