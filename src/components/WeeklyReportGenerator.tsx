@@ -24,13 +24,13 @@ const PRESETS = [
   { label: 'This Month',   start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: today },
 ];
 
-export const WeeklyReportGenerator: React.FC<Props> = ({ client, onClose }) => {
+export const WeeklyReportGenerator: React.FC<Props> = ({ client }) => {
   const [state, setState] = useState<ReportState>('idle');
   const [report, setReport] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [saved, setSaved] = useState(false);
   const [stats, setStats] = useState<{
-    total: number; live: number; pending: number; completed: number;
+    total: number; live: number; pending: number; completed: number; inReview: number;
     dateRangeStart: string; dateRangeEnd: string;
     byType: Record<string, number>;
   } | null>(null);
@@ -76,9 +76,9 @@ export const WeeklyReportGenerator: React.FC<Props> = ({ client, onClose }) => {
     if (!stats) return;
     try {
       await saveReportToSanity(report, {
-        tasksSummary: stats, entries: [],
-        dateRangeStart: stats.dateRangeStart,
-        dateRangeEnd: stats.dateRangeEnd,
+        tasksSummary: { ...stats!, inReview: stats!.inReview ?? 0 }, entries: [],
+        dateRangeStart: stats!.dateRangeStart,
+        dateRangeEnd: stats!.dateRangeEnd,
       }, client);
       setSaved(true);
       toast.success('Report saved to Sanity!');
