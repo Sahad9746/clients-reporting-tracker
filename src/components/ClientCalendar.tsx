@@ -3,7 +3,6 @@ import { useClients } from '../context/ClientsContext';
 import type { CalendarChannel, CalendarStatus, Client, ContentTask } from '../types';
 import { EditTaskModal } from './EditTaskModal';
 import { Modal } from './Modal';
-import { SUMMARY_STATS } from '../data/iqueCapCalendar';
 import {
   MessageSquare, HelpCircle, FileText, CheckSquare, BarChart2,
   ChevronLeft, ChevronRight, ChevronDown, Trash2, Pencil,
@@ -75,8 +74,8 @@ const StatusPill = ({ status, taskId, clientId }: { status: CalendarStatus; task
 };
 
 // ── TaskChip (inside calendar cell) ─────────────────────────────────────────
-const TaskChip = ({ task, clientId, isReadOnly, onEdit, onDelete }: {
-  task: ContentTask; clientId: string; isReadOnly: boolean;
+const TaskChip = ({ task, isReadOnly, onEdit, onDelete }: {
+  task: ContentTask; isReadOnly: boolean;
   onEdit: (t: ContentTask) => void; onDelete: (id: string) => void;
 }) => {
   const meta = CHANNEL_META[task.channel];
@@ -369,7 +368,7 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
                     {/* Task chips — show up to 2, then "+N more" */}
                     {day && dayTasks.slice(0, 2).map(task => (
                       <div key={task.id} style={{ marginBottom: 3 }}>
-                        <TaskChip task={task} clientId={client.id} isReadOnly={isReadOnly} onEdit={setEditingTask} onDelete={id => { /* handled via panel */ }} />
+                        <TaskChip task={task} isReadOnly={isReadOnly} onEdit={setEditingTask} onDelete={() => { /* handled via panel */ }} />
                       </div>
                     ))}
                     {day && dayTasks.length > 2 && (
