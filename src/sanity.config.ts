@@ -3,6 +3,7 @@ import { structureTool } from 'sanity/structure';
 import clientSchema from '../sanity/schemas/client';
 import contentTaskSchema from '../sanity/schemas/contentTask';
 import trackerEntrySchema from '../sanity/schemas/trackerEntry';
+import reportSchema from '../sanity/schemas/report';
 
 export default defineConfig({
   name: 'default',
@@ -15,6 +16,6 @@ export default defineConfig({
   plugins: [structureTool()],
 
   schema: {
-    types: [clientSchema, contentTaskSchema, trackerEntrySchema],
+    types: [clientSchema, contentTaskSchema, trackerEntrySchema, reportSchema],
   },
 });

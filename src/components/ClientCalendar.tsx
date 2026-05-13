@@ -3,9 +3,10 @@ import { useClients } from '../context/ClientsContext';
 import type { CalendarChannel, CalendarStatus, Client, ContentTask } from '../types';
 import { EditTaskModal } from './EditTaskModal';
 import { Modal } from './Modal';
+import { WeeklyReportGenerator } from './WeeklyReportGenerator';
 import {
   MessageSquare, HelpCircle, FileText, CheckSquare, BarChart2,
-  ChevronLeft, ChevronRight, ChevronDown, Trash2, Pencil,
+  ChevronLeft, ChevronRight, ChevronDown, Trash2, Pencil, Sparkles,
 } from 'lucide-react';
 
 // ── Config ──────────────────────────────────────────────────────────────────
@@ -208,6 +209,7 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
   const [editingTask, setEditingTask] = useState<ContentTask | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewDate, setViewDate] = useState(() => deriveInitialMonth(tasks));
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const filteredTasks = tasks.filter(t => activeChannel === 'all' || t.channel === activeChannel);
 
@@ -248,13 +250,25 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
       {/* Page banner */}
       <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)', borderRadius: 14, padding: '1.5rem 2rem', marginBottom: '1.5rem', color: 'white', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: `${client.color}33`, pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: client.color }} />
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7 }}>{client.pilotLabel}</span>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: client.color }} />
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.7 }}>{client.pilotLabel}</span>
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>{client.name} — Content Calendar</h2>
+            <p style={{ opacity: 0.55, fontSize: '0.82rem', marginTop: '0.25rem' }}>{tasks.length} tasks · {liveTotal} live · {inReviewTotal} in review · {pendingTotal} pending</p>
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>{client.name} — Content Calendar</h2>
-          <p style={{ opacity: 0.55, fontSize: '0.82rem', marginTop: '0.25rem' }}>{tasks.length} tasks · {liveTotal} live · {inReviewTotal} in review · {pendingTotal} pending</p>
+          {!isReadOnly && (
+            <button
+              onClick={() => setShowReportModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: 8, border: '1.5px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: 'white', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, backdropFilter: 'blur(4px)', transition: 'all 0.2s', flexShrink: 0 }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+            >
+              <Sparkles size={15} /> Generate Report
+            </button>
+          )}
         </div>
       </div>
 
@@ -405,6 +419,16 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
           clientId={client.id}
         />
       )}
+
+      {/* Weekly Report Generator Modal */}
+      <Modal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        title={`✨ AI Weekly Report — ${client.name}`}
+        maxWidth="860px"
+      >
+        <WeeklyReportGenerator client={client} onClose={() => setShowReportModal(false)} />
+      </Modal>
 
       <div style={{ marginTop: '1rem', padding: '0.75rem 1.25rem', backgroundColor: '#f8fafc', border: '1px solid var(--color-border)', borderRadius: 10, fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
         <strong style={{ color: 'var(--color-text-main)' }}>Tip: </strong>
