@@ -2,17 +2,18 @@ import { useState } from 'react';
 import { useTracker } from '../context/TrackerContext';
 import { useClients } from '../context/ClientsContext';
 import { useAuth } from '../context/AuthContext';
-import { Download, Search, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
-import type { Status, TaskType } from '../types';
+import { Download, Search, Trash2, AlertTriangle, AlertCircle, Edit2 } from 'lucide-react';
+import type { Status, TaskType, Entry } from '../types';
 import { toast } from 'react-hot-toast';
 import { createPortal } from 'react-dom';
+import { EditEntryModal } from './EditEntryModal';
 
 interface TrackerTableProps {
   isReadOnly?: boolean;
 }
 
 export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
-  const { entries, deleteEntry } = useTracker();
+  const { entries, deleteEntry, updateEntry } = useTracker();
   const { clients } = useClients();
   const { auth } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,6 +21,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
   const [taskTypeFilter, setTaskTypeFilter] = useState<TaskType | 'All'>('All');
   const [clientFilter, setClientFilter] = useState<string>('All');
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
+  const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null);
 
   const activeClient = isReadOnly ? clients.find(c => c.id === auth?.clientId) : null;
 
@@ -82,6 +84,12 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
       toast.success('Entry deleted successfully');
       setEntryToDelete(null);
     }
+  };
+
+  const handleSaveEdit = (id: string, updated: Partial<Entry>) => {
+    const activeClient = isReadOnly ? clients.find(c => c.id === auth?.clientId) : null;
+    const customUrl = activeClient?.googleSheetUrl;
+    updateEntry(id, updated, customUrl);
   };
 
   if (isReadOnly && activeClient && !activeClient.googleSheetUrl) {
@@ -221,13 +229,22 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
                   <td>{entry.engagement}</td>
                   {!isReadOnly && (
                     <td>
-                      <button 
-                        onClick={() => setEntryToDelete(entry.id)}
-                        style={{ color: '#ef4444', padding: '0.25rem', borderRadius: '4px' }}
-                        title="Delete Entry"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => setEntryToEdit(entry)}
+                          style={{ color: 'var(--color-primary)', padding: '0.25rem', borderRadius: '4px' }}
+                          title="Edit Entry"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => setEntryToDelete(entry.id)}
+                          style={{ color: '#ef4444', padding: '0.25rem', borderRadius: '4px' }}
+                          title="Delete Entry"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -237,6 +254,17 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
           </tbody>
         </table>
       </div>
+
+      {/* Edit Entry Modal */}
+      {entryToEdit && typeof document !== 'undefined' && createPortal(
+        <EditEntryModal 
+          entry={entryToEdit}
+          onClose={() => setEntryToEdit(null)}
+          onSave={handleSaveEdit}
+          isReadOnly={isReadOnly}
+        />,
+        document.body
+      )}
 
       {/* Delete Confirmation Modal using React Portal */}
       {entryToDelete && typeof document !== 'undefined' && createPortal(
