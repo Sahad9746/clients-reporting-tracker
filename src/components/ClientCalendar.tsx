@@ -68,8 +68,8 @@ const StatusPill = ({ status, taskId, clientId }: { status: CalendarStatus; task
       </button>
       {open && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setOpen(false)} />
-          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 20, backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, boxShadow: 'var(--shadow-lg)', overflow: 'hidden', minWidth: 120 }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setOpen(false)} />
+          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 100, backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, boxShadow: 'var(--shadow-lg)', overflow: 'hidden', minWidth: 120 }}>
             {ALL_STATUSES.map(s => {
               const sm = STATUS_META[s];
               return (
@@ -146,7 +146,7 @@ const DayPanel = ({ date, tasks, clientId, isReadOnly, onEdit, onClose }: {
       maxWidth="1000px"
       headerStyle={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem', alignItems: 'start', minHeight: tasks.length > 0 ? '280px' : 'auto' }}>
         {tasks.length === 0 ? (
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>No tasks scheduled for this day.</p>
         ) : (
@@ -248,6 +248,12 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
   const [viewDate, setViewDate] = useState(() => deriveInitialMonth(tasks));
   const [showReportModal, setShowReportModal] = useState(false);
 
+  // Only include channels that actually have tasks scheduled for this specific client
+  const activeChannelsForClient = useMemo(() => {
+    const uniqueChannels = new Set(tasks.map(t => t.channel));
+    return channels.filter(ch => uniqueChannels.has(ch.value));
+  }, [tasks, channels]);
+
   const filteredTasks = tasks.filter(t => activeChannel === 'all' || t.channel === activeChannel);
 
   // Group by date: "YYYY-MM-DD" -> tasks[]
@@ -312,31 +318,47 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
       {/* Summary stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.625rem', marginBottom: '1.5rem' }}>
         {(() => {
-          let articles = 0, rpMin = 0, rpMax = 0, rcMin = 0, rcMax = 0, qaMin = 0, qaMax = 0, blMin = 0, blMax = 0;
-          tasks.forEach(t => {
-            const d = t.deliverableCount.toLowerCase();
-            const nums = d.match(/\d+/g)?.map(Number) || [0];
-            const min = nums[0]; const max = nums.length > 1 ? nums[1] : nums[0];
-            
-            if (d.includes('article') && !d.includes('live')) { articles += min; }
-            else if (d.includes('post') && t.channel === 'reddit') { rpMin += min; rpMax += max; }
-            else if (d.includes('comment') && t.channel === 'reddit') { rcMin += min; rcMax += max; }
-            else if (d.includes('answer') && t.channel === 'quora') { qaMin += min; qaMax += max; }
-            else if (d.includes('backlink')) { blMin += min; blMax += max; }
-          });
-          const format = (min: number, max: number) => min === max ? `${min}` : `${min}-${max}`;
+          const map: Record<string, { min: number; max: number; taskCount: number }> = {};
           
-          const stats = [
-            { label: 'Articles', value: `${articles}`, detail: 'target' },
-            { label: 'Reddit Posts', value: format(rpMin, rpMax), detail: 'target' },
-            { label: 'Reddit Comments', value: format(rcMin, rcMax), detail: 'net live' },
-            { label: 'Quora Answers', value: format(qaMin, qaMax), detail: 'live' },
-            { label: 'Backlinks', value: format(blMin, blMax), detail: 'contextual ≥40%' }
-          ];
+          tasks.forEach(t => {
+            const ch = t.channel;
+            const desc = t.deliverableCount.toLowerCase();
+            const nums = desc.match(/\d+/g)?.map(Number) || [];
+            const min = nums[0] ?? 0;
+            const max = nums.length > 1 ? nums[1] : min;
+            
+            if (!map[ch]) {
+              map[ch] = { min: 0, max: 0, taskCount: 0 };
+            }
+            map[ch].min += min;
+            map[ch].max += max;
+            map[ch].taskCount += 1;
+          });
+
+          const formatRange = (min: number, max: number) => {
+            if (min === 0 && max === 0) return "0";
+            return min === max ? `${min}` : `${min}–${max}`;
+          };
+
+          const stats = Object.entries(map)
+            .filter(([_, totals]) => totals.max > 0)
+            .map(([chValue, totals]) => {
+              const chInfo = channels.find(c => c.value === chValue);
+              return {
+                label: chInfo?.label ?? chValue,
+                value: formatRange(totals.min, totals.max),
+                detail: `${totals.taskCount} task${totals.taskCount !== 1 ? 's' : ''} scheduled`,
+                color: chInfo?.color ?? 'var(--color-primary)'
+              };
+            });
+
+          if (stats.length === 0) {
+            return null; // Hide stats area completely if there are no deliverable counts
+          }
 
           return stats.map(stat => (
-            <div key={stat.label} className="card" style={{ padding: '0.875rem 1rem', textAlign: 'center' }}>
-              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1, marginBottom: '0.15rem' }}>{stat.value}</p>
+            <div key={stat.label} className="card" style={{ padding: '0.875rem 1rem', textAlign: 'center', borderTop: `4px solid ${stat.color}` }}>
+              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: stat.color, lineHeight: 1, marginBottom: '0.15rem' }}>{stat.value}</p>
               <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-text-main)' }}>{stat.label}</p>
               <p style={{ fontSize: '0.67rem', color: 'var(--color-text-muted)', marginTop: 1 }}>{stat.detail}</p>
             </div>
@@ -347,7 +369,7 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
       {/* Channel filter */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1.25rem', alignItems: 'center' }}>
         <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.25rem' }}>Filter:</span>
-        {['all', ...channels.map(c => c.value)].map(ch => {
+        {['all', ...activeChannelsForClient.map(c => c.value)].map(ch => {
           const isActive = activeChannel === ch;
           const chInfo = channels.find(c => c.value === ch);
           const meta = ch === 'all' ? null : {

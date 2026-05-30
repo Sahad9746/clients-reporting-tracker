@@ -11,6 +11,7 @@ export const LoginPage: React.FC = () => {
   const { clients } = useClients();
   const [mode, setMode] = useState<Mode>('admin');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,10 +87,15 @@ export const LoginPage: React.FC = () => {
 
             {/* Password */}
             <div className="form-group">
-              <label className="form-label">{mode === 'admin' ? 'Admin Password' : 'Password'}</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label">{mode === 'admin' ? 'Admin Password' : 'Password'}</label>
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}>
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
-                <input type="password" className="form-input" placeholder="Enter password" value={password}
+                <input type={showPassword ? "text" : "password"} className="form-input" placeholder="Enter password" value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   style={{ paddingLeft: '2.5rem' }} autoFocus />
               </div>
