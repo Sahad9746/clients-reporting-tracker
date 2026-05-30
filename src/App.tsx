@@ -12,6 +12,7 @@ import { AddCalendarEntry } from './components/AddCalendarEntry';
 import { AddClientForm } from './components/AddClientForm';
 import { ClientList } from './components/ClientList';
 import { ClientCalendar } from './components/ClientCalendar';
+import { ChannelSettings } from './components/ChannelSettings';
 import { Modal } from './components/Modal';
 import { useTracker } from './context/TrackerContext';
 import { Plus, Share2, RefreshCw } from 'lucide-react';
@@ -145,7 +146,20 @@ const AppShell: React.FC = () => {
           </>
         )}
 
-        {/* ── Client Calendar ── */}
+        {/* ── Settings ── */}
+        {effectiveView.page === 'settings' && isSuperAdmin && (
+          <>
+            <div className="page-topbar">
+              <div>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-primary)', margin: 0 }}>Settings</h2>
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>Configure dynamic calendar channels and options</p>
+              </div>
+            </div>
+            <div className="page-body">
+              <ChannelSettings />
+            </div>
+          </>
+        )}
         {effectiveView.page === 'calendar' && activeClient && (
           <>
             <div className="page-topbar">

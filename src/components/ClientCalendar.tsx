@@ -1,21 +1,36 @@
 import { useState, useMemo } from 'react';
 import { useClients } from '../context/ClientsContext';
-import type { CalendarChannel, CalendarStatus, Client, ContentTask } from '../types';
+import type { CalendarStatus, Client, ContentTask } from '../types';
 import { EditTaskModal } from './EditTaskModal';
 import { Modal } from './Modal';
 import { WeeklyReportGenerator } from './WeeklyReportGenerator';
 import {
   MessageSquare, HelpCircle, FileText, CheckSquare, BarChart2,
   ChevronLeft, ChevronRight, ChevronDown, Trash2, Pencil, Sparkles,
+  Share2, Globe, Tv, Megaphone, Compass, Send, Link, Zap
 } from 'lucide-react';
 
-// ── Config ──────────────────────────────────────────────────────────────────
-const CHANNEL_META: Record<CalendarChannel, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  reddit:    { label: 'Reddit',    color: '#2563eb', bg: '#dbeafe', icon: <MessageSquare size={11} /> },
-  quora:     { label: 'Quora',     color: '#16a34a', bg: '#dcfce7', icon: <HelpCircle size={11} /> },
-  seo:       { label: 'SEO',       color: '#ea580c', bg: '#ffedd5', icon: <FileText size={11} /> },
-  approval:  { label: 'Approval',  color: '#7c3aed', bg: '#ede9fe', icon: <CheckSquare size={11} /> },
-  reporting: { label: 'Reporting', color: '#475569', bg: '#f1f5f9', icon: <BarChart2 size={11} /> },
+export const getChannelIcon = (iconName: string, size = 11) => {
+  switch (iconName) {
+    case 'reddit':
+    case 'message-square': return <MessageSquare size={size} />;
+    case 'quora':
+    case 'help-circle': return <HelpCircle size={size} />;
+    case 'seo':
+    case 'file-text': return <FileText size={size} />;
+    case 'approval':
+    case 'check-square': return <CheckSquare size={size} />;
+    case 'reporting':
+    case 'bar-chart': return <BarChart2 size={size} />;
+    case 'share': return <Share2 size={size} />;
+    case 'globe': return <Globe size={size} />;
+    case 'tv': return <Tv size={size} />;
+    case 'megaphone': return <Megaphone size={size} />;
+    case 'compass': return <Compass size={size} />;
+    case 'send': return <Send size={size} />;
+    case 'link': return <Link size={size} />;
+    default: return <Zap size={size} />;
+  }
 };
 
 const STATUS_META: Record<CalendarStatus, { label: string; color: string; bg: string }> = {
@@ -26,7 +41,6 @@ const STATUS_META: Record<CalendarStatus, { label: string; color: string; bg: st
   blocked:   { label: 'Blocked',   color: '#991b1b', bg: '#fee2e2' },
 };
 
-const ALL_CHANNELS: CalendarChannel[] = ['reddit', 'quora', 'seo', 'approval', 'reporting'];
 const ALL_STATUSES: CalendarStatus[] = ['pending', 'in_review', 'approved', 'live', 'blocked'];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -79,7 +93,19 @@ const TaskChip = ({ task, isReadOnly, onEdit, onDelete }: {
   task: ContentTask; isReadOnly: boolean;
   onEdit: (t: ContentTask) => void; onDelete: (id: string) => void;
 }) => {
-  const meta = CHANNEL_META[task.channel];
+  const { channels } = useClients();
+  const chInfo = channels.find(c => c.value === task.channel) || {
+    label: task.channel,
+    color: '#475569',
+    bg: '#f1f5f9',
+    iconName: 'zap',
+  };
+  const meta = {
+    label: chInfo.label,
+    color: chInfo.color,
+    bg: chInfo.bg,
+    icon: getChannelIcon(chInfo.iconName, 11),
+  };
   const sMeta = STATUS_META[task.status];
   const [hovered, setHovered] = useState(false);
 
@@ -107,7 +133,7 @@ const DayPanel = ({ date, tasks, clientId, isReadOnly, onEdit, onClose }: {
   date: string; tasks: ContentTask[]; clientId: string; isReadOnly: boolean;
   onEdit: (t: ContentTask) => void; onClose: () => void;
 }) => {
-  const { deleteTask } = useClients();
+  const { deleteTask, channels } = useClients();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const formatted = new Date(date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -125,7 +151,18 @@ const DayPanel = ({ date, tasks, clientId, isReadOnly, onEdit, onClose }: {
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>No tasks scheduled for this day.</p>
         ) : (
           tasks.map(task => {
-            const cm = CHANNEL_META[task.channel];
+            const chInfo = channels.find(c => c.value === task.channel) || {
+              label: task.channel,
+              color: '#475569',
+              bg: '#f1f5f9',
+              iconName: 'zap',
+            };
+            const cm = {
+              label: chInfo.label,
+              color: chInfo.color,
+              bg: chInfo.bg,
+              icon: getChannelIcon(chInfo.iconName, 11),
+            };
             const isExpanded = expandedTaskId === task.id;
             return (
               <div key={task.id} style={{ border: '1px solid var(--color-border)', borderRadius: 10, backgroundColor: 'var(--color-background)', transition: 'all 0.2s ease-in-out', position: 'relative' }}>
@@ -202,10 +239,10 @@ interface ClientCalendarProps {
 }
 
 export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOnly }) => {
-  const { taskMap } = useClients();
+  const { taskMap, channels } = useClients();
   const tasks = taskMap[client.id] ?? [];
 
-  const [activeChannel, setActiveChannel] = useState<CalendarChannel | 'all'>('all');
+  const [activeChannel, setActiveChannel] = useState<string>('all');
   const [editingTask, setEditingTask] = useState<ContentTask | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [viewDate, setViewDate] = useState(() => deriveInitialMonth(tasks));
@@ -310,12 +347,18 @@ export const ClientCalendar: React.FC<ClientCalendarProps> = ({ client, isReadOn
       {/* Channel filter */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1.25rem', alignItems: 'center' }}>
         <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.25rem' }}>Filter:</span>
-        {(['all', ...ALL_CHANNELS] as const).map(ch => {
+        {['all', ...channels.map(c => c.value)].map(ch => {
           const isActive = activeChannel === ch;
-          const meta = ch === 'all' ? null : CHANNEL_META[ch];
+          const chInfo = channels.find(c => c.value === ch);
+          const meta = ch === 'all' ? null : {
+            label: chInfo?.label ?? ch,
+            color: chInfo?.color ?? '#475569',
+            bg: chInfo?.bg ?? '#f1f5f9',
+            icon: getChannelIcon(chInfo?.iconName ?? 'zap', 11),
+          };
           return (
             <button key={ch} onClick={() => setActiveChannel(ch)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 9999, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', border: isActive ? `2px solid ${meta?.color ?? 'var(--color-primary)'}` : '2px solid var(--color-border)', backgroundColor: isActive ? (meta?.bg ?? 'var(--color-primary)') : 'var(--color-surface)', color: isActive ? (meta?.color ?? 'white') : 'var(--color-text-muted)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 9999, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', border: isActive ? `2.5px solid ${meta?.color ?? 'var(--color-primary)'}` : '1.5px solid var(--color-border)', backgroundColor: isActive ? (meta?.bg ?? 'var(--color-primary)') : 'var(--color-surface)', color: isActive ? (meta?.color ?? 'white') : 'var(--color-text-muted)' }}>
               {meta?.icon}{ch === 'all' ? 'All' : meta!.label}
             </button>
           );

@@ -1,11 +1,12 @@
 import { useAuth } from '../context/AuthContext';
 import { useClients } from '../context/ClientsContext';
 import type { Client } from '../types';
-import { ClipboardList, CalendarDays, LogOut, Users } from 'lucide-react';
+import { ClipboardList, CalendarDays, LogOut, Users, Sliders } from 'lucide-react';
 
 export type AppView =
   | { page: 'tracker' }
   | { page: 'clients' }
+  | { page: 'settings' }
   | { page: 'calendar'; clientId: string };
 
 interface SidebarProps {
@@ -83,6 +84,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, onNavigate }) => {
               label={`Clients (${clients.length})`}
               active={view.page === 'clients'}
               onClick={() => onNavigate({ page: 'clients' })}
+            />
+            <NavItem
+              icon={<Sliders size={15} />}
+              label="Settings"
+              active={view.page === 'settings'}
+              onClick={() => onNavigate({ page: 'settings' })}
             />
 
             {clients.length > 0 && (

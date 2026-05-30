@@ -1,9 +1,17 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { Client, ContentTask, CalendarStatus } from '../types';
+import type { Client, ContentTask, CalendarStatus, DynamicChannel } from '../types';
 import { IQUE_CAP_TASKS } from '../data/iqueCapCalendar';
 import { toast } from 'react-hot-toast';
 import { sanityClient } from '../lib/sanity';
+
+const DEFAULT_CHANNELS: DynamicChannel[] = [
+  { value: 'reddit', label: 'Reddit', color: '#2563eb', bg: '#dbeafe', iconName: 'message-square' },
+  { value: 'quora', label: 'Quora', color: '#16a34a', bg: '#dcfce7', iconName: 'help-circle' },
+  { value: 'seo', label: 'SEO / Article', color: '#ea580c', bg: '#ffedd5', iconName: 'file-text' },
+  { value: 'approval', label: 'Approval', color: '#7c3aed', bg: '#ede9fe', iconName: 'check-square' },
+  { value: 'reporting', label: 'Reporting', color: '#475569', bg: '#f1f5f9', iconName: 'bar-chart' },
+];
 
 // ── Context types ──────────────────────────────────────────────────────────
 interface ClientsContextType {
@@ -17,6 +25,10 @@ interface ClientsContextType {
   updateTask: (clientId: string, taskId: string, updates: Partial<Omit<ContentTask, 'id'>>) => void;
   updateTaskStatus: (clientId: string, taskId: string, status: CalendarStatus) => void;
   deleteTask: (clientId: string, taskId: string) => void;
+  channels: DynamicChannel[];
+  addChannel: (channel: DynamicChannel) => Promise<void>;
+  updateChannel: (value: string, updates: Partial<Omit<DynamicChannel, 'value'>>) => Promise<void>;
+  deleteChannel: (value: string) => Promise<void>;
 }
 
 const ClientsContext = createContext<ClientsContextType | undefined>(undefined);
@@ -25,12 +37,19 @@ const ClientsContext = createContext<ClientsContextType | undefined>(undefined);
 export const ClientsProvider = ({ children }: { children: ReactNode }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [taskMap, setTaskMap] = useState<Record<string, ContentTask[]>>({});
+  const [channels, setChannels] = useState<DynamicChannel[]>(DEFAULT_CHANNELS);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initial load & migration
   useEffect(() => {
     async function init() {
       if (!import.meta.env.VITE_SANITY_PROJECT_ID) {
+        const local = localStorage.getItem('adm-channels');
+        if (local) {
+          setChannels(JSON.parse(local));
+        } else {
+          localStorage.setItem('adm-channels', JSON.stringify(DEFAULT_CHANNELS));
+        }
         setIsLoading(false);
         return;
       }
@@ -94,6 +113,32 @@ export const ClientsProvider = ({ children }: { children: ReactNode }) => {
         }
 
         setClients(finalClients);
+
+        // Fetch channels settings from Sanity or fallback to localStorage
+        let fetchedChannels = DEFAULT_CHANNELS;
+        try {
+          const settings = await sanityClient.fetch(`*[_type == "channelsSettings" && _id == "global-channels-settings"][0]`);
+          if (settings && settings.channels && settings.channels.length > 0) {
+            fetchedChannels = settings.channels;
+          } else {
+            // Seed defaults into Sanity if they are not there
+            const defaultDoc = {
+              _id: 'global-channels-settings',
+              _type: 'channelsSettings',
+              channels: DEFAULT_CHANNELS,
+            };
+            await sanityClient.createIfNotExists(defaultDoc);
+          }
+        } catch (err) {
+          console.warn("Could not load channels from Sanity, using localStorage fallback:", err);
+          const local = localStorage.getItem('adm-channels');
+          if (local) {
+            fetchedChannels = JSON.parse(local);
+          } else {
+            localStorage.setItem('adm-channels', JSON.stringify(DEFAULT_CHANNELS));
+          }
+        }
+        setChannels(fetchedChannels);
 
         // Fetch tasks
         const sanityTasks = await sanityClient.fetch(`*[_type == "contentTask"]{
@@ -229,8 +274,61 @@ export const ClientsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addChannel = async (channel: DynamicChannel) => {
+    try {
+      const newChannels = [...channels, channel];
+      setChannels(newChannels);
+      localStorage.setItem('adm-channels', JSON.stringify(newChannels));
+      
+      if (import.meta.env.VITE_SANITY_PROJECT_ID) {
+        await sanityClient.createIfNotExists({
+          _id: 'global-channels-settings',
+          _type: 'channelsSettings',
+          channels: DEFAULT_CHANNELS,
+        });
+        await sanityClient.patch('global-channels-settings').set({ channels: newChannels }).commit();
+      }
+      toast.success(`Channel "${channel.label}" added`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to add channel');
+    }
+  };
+
+  const updateChannel = async (value: string, updates: Partial<Omit<DynamicChannel, 'value'>>) => {
+    try {
+      const newChannels = channels.map(ch => ch.value === value ? { ...ch, ...updates } : ch);
+      setChannels(newChannels);
+      localStorage.setItem('adm-channels', JSON.stringify(newChannels));
+      
+      if (import.meta.env.VITE_SANITY_PROJECT_ID) {
+        await sanityClient.patch('global-channels-settings').set({ channels: newChannels }).commit();
+      }
+      toast.success('Channel updated');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to update channel');
+    }
+  };
+
+  const deleteChannel = async (value: string) => {
+    try {
+      const newChannels = channels.filter(ch => ch.value !== value);
+      setChannels(newChannels);
+      localStorage.setItem('adm-channels', JSON.stringify(newChannels));
+      
+      if (import.meta.env.VITE_SANITY_PROJECT_ID) {
+        await sanityClient.patch('global-channels-settings').set({ channels: newChannels }).commit();
+      }
+      toast.success('Channel removed');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to delete channel');
+    }
+  };
+
   return (
-    <ClientsContext.Provider value={{ clients, taskMap, isLoading, addClient, updateClient, deleteClient, addTask, updateTask, updateTaskStatus, deleteTask }}>
+    <ClientsContext.Provider value={{ clients, taskMap, isLoading, addClient, updateClient, deleteClient, addTask, updateTask, updateTaskStatus, deleteTask, channels, addChannel, updateChannel, deleteChannel }}>
       {children}
     </ClientsContext.Provider>
   );

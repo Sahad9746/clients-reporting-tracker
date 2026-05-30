@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useClients } from '../context/ClientsContext';
-import type { CalendarChannel, CalendarStatus, ContentTask } from '../types';
+import type { CalendarStatus, ContentTask } from '../types';
 import { Modal } from './Modal';
 import { Save } from 'lucide-react';
 
-const CHANNELS: CalendarChannel[] = ['reddit', 'quora', 'seo', 'approval', 'reporting'];
 const STATUSES: CalendarStatus[] = ['pending', 'in_review', 'approved', 'live', 'blocked'];
 const STATUS_LABELS: Record<CalendarStatus, string> = { pending: 'Pending', in_review: 'In Review', approved: 'Approved', live: 'Live', blocked: 'Blocked' };
-const CHANNEL_LABELS: Record<CalendarChannel, string> = { reddit: 'Reddit', quora: 'Quora', seo: 'SEO / Article', approval: 'Approval', reporting: 'Reporting' };
 
 interface Props {
   isOpen: boolean;
@@ -17,7 +15,7 @@ interface Props {
 }
 
 export const EditTaskModal: React.FC<Props> = ({ isOpen, onClose, task, clientId }) => {
-  const { updateTask } = useClients();
+  const { updateTask, channels } = useClients();
   const [form, setForm] = useState<Omit<ContentTask, 'id'>>(task);
   const [errors, setErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
 
@@ -57,14 +55,8 @@ export const EditTaskModal: React.FC<Props> = ({ isOpen, onClose, task, clientId
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Channel</label>
-            <select className="form-input" value={form.channel} onChange={e => set('channel', e.target.value as CalendarChannel)}>
-              {CHANNELS.map(ch => <option key={ch} value={ch}>{CHANNEL_LABELS[ch]}</option>)}
-            </select>
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Week</label>
-            <select className="form-input" value={form.week} onChange={e => set('week', Number(e.target.value) as ContentTask['week'])}>
-              {[1,2,3,4,5].map(w => <option key={w} value={w}>Week {w}</option>)}
+            <select className="form-input" value={form.channel} onChange={e => set('channel', e.target.value)}>
+              {channels.map(ch => <option key={ch.value} value={ch.value}>{ch.label}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>

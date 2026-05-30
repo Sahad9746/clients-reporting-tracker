@@ -15,14 +15,22 @@ export interface Client {
 }
 
 // --- iQue Cap Content Calendar ---
-export type CalendarChannel = 'reddit' | 'quora' | 'seo' | 'approval' | 'reporting';
+export type CalendarChannel = string;
 export type CalendarStatus = 'pending' | 'in_review' | 'approved' | 'live' | 'blocked';
+
+export interface DynamicChannel {
+  value: string;
+  label: string;
+  color: string;
+  bg: string;
+  iconName: string;
+}
 
 export interface ContentTask {
   id: string;
   title: string;
   channel: CalendarChannel;
-  week: 1 | 2 | 3 | 4 | 5;
+  week?: number;
   scheduledDate: string; // YYYY-MM-DD
   description: string;
   approvalNote: string;

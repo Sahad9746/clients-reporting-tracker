@@ -1,21 +1,29 @@
 import { useState } from 'react';
 import { useClients } from '../context/ClientsContext';
-import type { CalendarChannel, CalendarStatus, ContentTask } from '../types';
+import type { CalendarStatus, ContentTask } from '../types';
 import { Plus } from 'lucide-react';
 
-const CHANNELS: CalendarChannel[] = ['reddit', 'quora', 'seo', 'approval', 'reporting'];
 const STATUSES: CalendarStatus[] = ['pending', 'in_review', 'approved', 'live', 'blocked'];
 const STATUS_LABELS: Record<CalendarStatus, string> = { pending: 'Pending', in_review: 'In Review', approved: 'Approved', live: 'Live', blocked: 'Blocked' };
-const CHANNEL_LABELS: Record<CalendarChannel, string> = { reddit: 'Reddit', quora: 'Quora', seo: 'SEO / Article', approval: 'Approval', reporting: 'Reporting' };
 
 type FormData = Omit<ContentTask, 'id'>;
-const EMPTY = (clientId: string): FormData => ({ title: '', channel: 'seo', week: 1, scheduledDate: '', description: '', approvalNote: '', status: 'pending', clientName: clientId, deliverableCount: '' });
+const EMPTY = (clientId: string, defaultChannel: string): FormData => ({
+  title: '',
+  channel: defaultChannel,
+  scheduledDate: '',
+  description: '',
+  approvalNote: '',
+  status: 'pending',
+  clientName: clientId,
+  deliverableCount: ''
+});
 
 interface Props { clientId: string; onClose?: () => void; }
 
 export const AddCalendarEntry: React.FC<Props> = ({ clientId, onClose }) => {
-  const { addTask } = useClients();
-  const [form, setForm] = useState<FormData>(() => EMPTY(clientId));
+  const { addTask, channels } = useClients();
+  const defaultChannel = channels[0]?.value ?? 'seo';
+  const [form, setForm] = useState<FormData>(() => EMPTY(clientId, defaultChannel));
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]) => {
@@ -36,7 +44,7 @@ export const AddCalendarEntry: React.FC<Props> = ({ clientId, onClose }) => {
     ev.preventDefault();
     if (!validate()) return;
     addTask(clientId, { ...form, title: form.title.trim(), description: form.description.trim() });
-    setForm(EMPTY(clientId));
+    setForm(EMPTY(clientId, defaultChannel));
     setErrors({});
     onClose?.();
   };
@@ -49,21 +57,11 @@ export const AddCalendarEntry: React.FC<Props> = ({ clientId, onClose }) => {
         {errors.title && <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 4 }}>{errors.title}</p>}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">Channel</label>
-          <select className="form-input" value={form.channel} onChange={e => set('channel', e.target.value as CalendarChannel)}>
-            {CHANNELS.map(ch => <option key={ch} value={ch}>{CHANNEL_LABELS[ch]}</option>)}
-          </select>
-        </div>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Week</label>
-          <select className="form-input" value={form.week} onChange={e => set('week', Number(e.target.value) as ContentTask['week'])}>
-            <option value={1}>Week 1 (Jun 1–7)</option>
-            <option value={2}>Week 2 (Jun 8–14)</option>
-            <option value={3}>Week 3 (Jun 15–21)</option>
-            <option value={4}>Week 4 (Jun 22–28)</option>
-            <option value={5}>Week 5 (Jun 29–30)</option>
+          <select className="form-input" value={form.channel} onChange={e => set('channel', e.target.value)}>
+            {channels.map(ch => <option key={ch.value} value={ch.value}>{ch.label}</option>)}
           </select>
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
