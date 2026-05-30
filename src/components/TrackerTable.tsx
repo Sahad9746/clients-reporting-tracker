@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTracker } from '../context/TrackerContext';
 import { useClients } from '../context/ClientsContext';
 import { useAuth } from '../context/AuthContext';
-import { Download, Search, Trash2, AlertTriangle, AlertCircle, Edit2 } from 'lucide-react';
+import { Download, Search, Trash2, AlertTriangle, Edit2 } from 'lucide-react';
 import type { Status, TaskType, Entry } from '../types';
 import { toast } from 'react-hot-toast';
 import { createPortal } from 'react-dom';
@@ -22,8 +22,6 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
   const [clientFilter, setClientFilter] = useState<string>('All');
   const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
   const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null);
-
-  const activeClient = isReadOnly ? clients.find(c => c.id === auth?.clientId) : null;
 
   const filteredEntries = entries.filter(entry => {
     const matchesSearch = entry.platform.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -91,19 +89,6 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
     const customUrl = activeClient?.googleSheetUrl;
     updateEntry(id, updated, customUrl);
   };
-
-  if (isReadOnly && activeClient && !activeClient.googleSheetUrl) {
-    return (
-      <div className="card animate-fade-in" style={{ animationDelay: '0.4s', textAlign: 'center', padding: '4rem 2rem' }}>
-        <AlertCircle size={48} style={{ color: 'var(--color-text-muted)', margin: '0 auto 1rem', opacity: 0.5 }} />
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>No Tracker Linked</h2>
-        <p style={{ color: 'var(--color-text-muted)' }}>
-          Your account is not currently linked to a Google Sheet. <br/>
-          Please contact your administrator to set up your Live Tracker.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="card animate-fade-in" style={{ animationDelay: '0.4s' }}>
