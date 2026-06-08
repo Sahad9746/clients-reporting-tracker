@@ -4,7 +4,6 @@ import { useClients } from '../context/ClientsContext';
 import { useAuth } from '../context/AuthContext';
 import { Download, Search, Trash2, AlertTriangle, Edit2 } from 'lucide-react';
 import type { DailyLead } from '../types';
-import { toast } from 'react-hot-toast';
 import { createPortal } from 'react-dom';
 import { EditLeadModal } from './EditLeadModal';
 

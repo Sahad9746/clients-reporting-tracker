@@ -33,6 +33,7 @@ export const WeeklyReportGenerator: React.FC<Props> = ({ client }) => {
     total: number; live: number; pending: number; completed: number; inReview: number;
     dateRangeStart: string; dateRangeEnd: string;
     byType: Record<string, number>;
+    totalLeads: number;
   } | null>(null);
 
   // Date range state
