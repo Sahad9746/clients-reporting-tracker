@@ -22,6 +22,7 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({ entry, onClose, 
     indexed: entry.indexed,
     engagement: entry.engagement,
     notes: entry.notes,
+    leads: entry.leads ?? 0,
   });
 
   useEffect(() => {
@@ -194,6 +195,18 @@ export const EditEntryModal: React.FC<EditEntryModalProps> = ({ entry, onClose, 
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
               </select>
+            </div>
+
+            <div>
+              <label className="form-label">Leads Generated</label>
+              <input 
+                type="number" 
+                className="form-input" 
+                value={formData.leads}
+                onChange={(e) => setFormData({ ...formData, leads: Math.max(0, parseInt(e.target.value) || 0) })}
+                min={0}
+                placeholder="0"
+              />
             </div>
 
             <div>

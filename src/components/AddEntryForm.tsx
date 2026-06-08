@@ -20,6 +20,7 @@ export const AddEntryForm: React.FC<Props> = ({ onClose }) => {
   const [indexed, setIndexed] = useState<'Yes' | 'No'>('Yes');
   const [engagement, setEngagement] = useState<EngagementLevel>('Medium');
   const [notes, setNotes] = useState('');
+  const [leads, setLeads] = useState<number>(0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +30,8 @@ export const AddEntryForm: React.FC<Props> = ({ onClose }) => {
     const selectedClient = clients.find(c => c.id === clientId);
     const customUrl = selectedClient?.googleSheetUrl;
 
-    addEntry({ clientId: clientId || undefined, date, taskType, platform, url, status, indexed, engagement, notes }, customUrl);
-    setPlatform(''); setUrl(''); setNotes(''); setStatus('Live'); setClientId('');
+    addEntry({ clientId: clientId || undefined, date, taskType, platform, url, status, indexed, engagement, notes, leads }, customUrl);
+    setPlatform(''); setUrl(''); setNotes(''); setStatus('Live'); setClientId(''); setLeads(0);
     onClose?.();
   };
 
@@ -94,6 +95,17 @@ export const AddEntryForm: React.FC<Props> = ({ onClose }) => {
             <option value="Medium">Medium</option>
             <option value="High">High</option>
           </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Leads Generated</label>
+          <input 
+            type="number" 
+            className="form-input" 
+            value={leads} 
+            onChange={e => setLeads(Math.max(0, parseInt(e.target.value) || 0))} 
+            min={0}
+            placeholder="0"
+          />
         </div>
       </div>
       <div className="form-group" style={{ marginTop: '0.5rem' }}>

@@ -37,7 +37,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
   });
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Client', 'Task Type', 'Platform', 'URL', 'Status', 'Indexed on Google', 'Engagement Level', 'Notes', 'Last Updated'];
+    const headers = ['Date', 'Client', 'Task Type', 'Platform', 'URL', 'Status', 'Indexed on Google', 'Engagement Level', 'Notes', 'Leads Generated', 'Last Updated'];
     const csvRows = [headers.join(',')];
 
     for (const entry of filteredEntries) {
@@ -52,6 +52,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
         entry.indexed,
         entry.engagement,
         `"${entry.notes.replace(/"/g, '""')}"`,
+        entry.leads ?? 0,
         entry.lastUpdated
       ];
       csvRows.push(row.join(','));
@@ -167,13 +168,14 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
               <th>Status</th>
               <th>Indexed</th>
               <th>Engagement</th>
+              <th>Leads</th>
               {!isReadOnly && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {filteredEntries.length === 0 ? (
               <tr>
-                <td colSpan={isReadOnly ? 6 : 8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
+                <td colSpan={isReadOnly ? 7 : 9} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>
                   No entries found matching your criteria.
                 </td>
               </tr>
@@ -212,6 +214,11 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ isReadOnly }) => {
                   </td>
                   <td>{entry.indexed}</td>
                   <td>{entry.engagement}</td>
+                  <td>
+                    <span style={{ fontWeight: 600, color: (entry.leads ?? 0) > 0 ? 'var(--color-accent)' : 'var(--color-text-muted)' }}>
+                      {entry.leads ?? 0}
+                    </span>
+                  </td>
                   {!isReadOnly && (
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>

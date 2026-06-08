@@ -13,6 +13,7 @@ export interface ReportData {
     completed: number;
     inReview: number;
     byType: Record<string, number>;
+    totalLeads: number;
   };
   entries: Array<{
     date: string;
@@ -23,6 +24,7 @@ export interface ReportData {
     indexed: string;
     engagement: string;
     notes: string;
+    leads?: number;
   }>;
   dateRangeStart: string;
   dateRangeEnd: string;
@@ -46,7 +48,8 @@ export async function fetchWeeklyData(clientId?: string, startDate?: string, end
     status,
     indexed,
     engagement,
-    notes
+    notes,
+    leads
   }`;
 
   const entries = await sanityClient.fetch(query);
@@ -61,6 +64,7 @@ export async function fetchWeeklyData(clientId?: string, startDate?: string, end
       acc[e.taskType] = (acc[e.taskType] || 0) + 1;
       return acc;
     }, {}),
+    totalLeads: entries.reduce((sum: number, e: any) => sum + (e.leads || 0), 0),
   };
 
   return { tasksSummary, entries, dateRangeStart: from, dateRangeEnd: to };
@@ -69,7 +73,7 @@ export async function fetchWeeklyData(clientId?: string, startDate?: string, end
 /** Build the prompt text from the fetched data */
 function buildPrompt(data: ReportData, clientName: string): string {
   const entryLines = data.entries.map(e =>
-    `- [${e.date}] ${e.taskType} | ${e.platform} | Status: ${e.status} | Indexed: ${e.indexed} | Engagement: ${e.engagement}${e.notes ? ` | Notes: ${e.notes}` : ''}`
+    `- [${e.date}] ${e.taskType} | ${e.platform} | Status: ${e.status} | Leads Generated: ${e.leads ?? 0} | Indexed: ${e.indexed} | Engagement: ${e.engagement}${e.notes ? ` | Notes: ${e.notes}` : ''}`
   ).join('\n');
 
   return `You are acting as a CTO providing a weekly performance summary to a client.
@@ -77,11 +81,12 @@ function buildPrompt(data: ReportData, clientName: string): string {
 Client: ${clientName}
 Report Period: ${data.dateRangeStart} to ${data.dateRangeEnd}
 
-TASK SUMMARY:
+TASK & LEAD SUMMARY:
 - Total Tasks: ${data.tasksSummary.total}
 - Live: ${data.tasksSummary.live}
 - Pending: ${data.tasksSummary.pending}  
 - Completed: ${data.tasksSummary.completed}
+- Total Leads Generated: ${data.tasksSummary.totalLeads}
 - By Type: ${Object.entries(data.tasksSummary.byType).map(([k, v]) => `${k}: ${v}`).join(', ')}
 
 DETAILED ENTRIES:

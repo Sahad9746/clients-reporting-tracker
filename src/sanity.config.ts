@@ -5,6 +5,7 @@ import contentTaskSchema from '../sanity/schemas/contentTask';
 import trackerEntrySchema from '../sanity/schemas/trackerEntry';
 import reportSchema from '../sanity/schemas/report';
 import channelsSettingsSchema from '../sanity/schemas/channelsSettings';
+import dailyLeadSchema from '../sanity/schemas/dailyLead';
 
 export default defineConfig({
   name: 'default',
@@ -17,6 +18,6 @@ export default defineConfig({
   plugins: [structureTool()],
 
   schema: {
-    types: [clientSchema, contentTaskSchema, trackerEntrySchema, reportSchema, channelsSettingsSchema],
+    types: [clientSchema, contentTaskSchema, trackerEntrySchema, reportSchema, channelsSettingsSchema, dailyLeadSchema],
   },
 });

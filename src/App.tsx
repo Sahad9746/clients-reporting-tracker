@@ -4,6 +4,8 @@ import { ClientsProvider, useClients } from './context/ClientsContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { Sidebar } from './components/Sidebar';
+import { LeadsProvider } from './context/LeadsContext';
+import { LeadsTracker } from './components/LeadsTracker';
 import type { AppView } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { TrackerTable } from './components/TrackerTable';
@@ -146,6 +148,11 @@ const AppShell: React.FC = () => {
           </>
         )}
 
+        {/* ── Daily Leads ── */}
+        {effectiveView.page === 'leads' && (
+          <LeadsTracker isReadOnly={!isSuperAdmin} />
+        )}
+
         {/* ── Settings ── */}
         {effectiveView.page === 'settings' && isSuperAdmin && (
           <>
@@ -206,13 +213,15 @@ const AppRoot: React.FC = () => {
 
 function App() {
   return (
-    <TrackerProvider>
-      <ClientsProvider>
-        <AuthProvider>
-          <AppRoot />
-        </AuthProvider>
-      </ClientsProvider>
-    </TrackerProvider>
+    <ClientsProvider>
+      <TrackerProvider>
+        <LeadsProvider>
+          <AuthProvider>
+            <AppRoot />
+          </AuthProvider>
+        </LeadsProvider>
+      </TrackerProvider>
+    </ClientsProvider>
   );
 }
 

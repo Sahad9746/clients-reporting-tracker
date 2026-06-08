@@ -1,11 +1,12 @@
 import { useAuth } from '../context/AuthContext';
 import { useClients } from '../context/ClientsContext';
 import type { Client } from '../types';
-import { ClipboardList, CalendarDays, LogOut, Users, Sliders } from 'lucide-react';
+import { ClipboardList, CalendarDays, LogOut, Users, Sliders, TrendingUp } from 'lucide-react';
 
 export type AppView =
   | { page: 'tracker' }
   | { page: 'clients' }
+  | { page: 'leads' }
   | { page: 'settings' }
   | { page: 'calendar'; clientId: string };
 
@@ -86,6 +87,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, onNavigate }) => {
               onClick={() => onNavigate({ page: 'clients' })}
             />
             <NavItem
+              icon={<TrendingUp size={15} />}
+              label="Daily Leads"
+              active={view.page === 'leads'}
+              onClick={() => onNavigate({ page: 'leads' })}
+            />
+            <NavItem
               icon={<Sliders size={15} />}
               label="Settings"
               active={view.page === 'settings'}
@@ -119,6 +126,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, onNavigate }) => {
               label="Live Tracker"
               active={view.page === 'tracker'}
               onClick={() => onNavigate({ page: 'tracker' })}
+            />
+            <NavItem
+              icon={<TrendingUp size={15} />}
+              label="Daily Leads"
+              active={view.page === 'leads'}
+              onClick={() => onNavigate({ page: 'leads' })}
             />
             <SectionLabel label="My Calendar" />
             <NavItem

@@ -71,5 +71,12 @@ export default {
       title: 'Notes',
       type: 'text',
     },
+    {
+      name: 'leads',
+      title: 'Leads Generated',
+      type: 'number',
+      initialValue: 0,
+      validation: (Rule: any) => Rule.min(0),
+    },
   ],
 };

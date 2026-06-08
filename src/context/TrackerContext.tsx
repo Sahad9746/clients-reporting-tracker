@@ -36,7 +36,7 @@ export const TrackerProvider = ({ children }: { children: ReactNode }) => {
         "id": _id,
         "lastUpdated": _updatedAt,
         "clientId": clientRef._ref,
-        date, taskType, platform, url, status, indexed, engagement, notes
+        date, taskType, platform, url, status, indexed, engagement, notes, leads
       }`);
 
       let finalEntries = sanityEntries;
@@ -62,7 +62,7 @@ export const TrackerProvider = ({ children }: { children: ReactNode }) => {
             "id": _id,
             "lastUpdated": _updatedAt,
             "clientId": clientRef._ref,
-            date, taskType, platform, url, status, indexed, engagement, notes
+            date, taskType, platform, url, status, indexed, engagement, notes, leads
           }`);
         }
         localStorage.setItem('sanity-tracker-migrated', 'true');
@@ -110,6 +110,7 @@ export const TrackerProvider = ({ children }: { children: ReactNode }) => {
         indexed: entryData.indexed,
         engagement: entryData.engagement,
         notes: entryData.notes,
+        leads: entryData.leads ?? 0,
       });
 
       const newEntry: Entry = {

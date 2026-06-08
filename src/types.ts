@@ -51,4 +51,15 @@ export interface Entry {
   engagement: EngagementLevel;
   notes: string;
   lastUpdated: string;
+  leads?: number;
+}
+
+export interface DailyLead {
+  id: string;
+  clientId: string;
+  date: string;
+  leads: number;
+  source: string;
+  notes: string;
+  lastUpdated: string;
 }
